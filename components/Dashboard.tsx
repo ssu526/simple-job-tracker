@@ -69,6 +69,9 @@ export function Dashboard({
   const [selectedId, setSelectedId] = useState<number | null>(
     initialUser.jobSearches[0]?.id ?? null,
   );
+  const [creatingSearchName, setCreatingSearchName] = useState<string | null>(
+    null,
+  );
 
   const [applications, setApplications] =
     useState<Application[]>(initialApplications);
@@ -192,6 +195,8 @@ export function Dashboard({
   }
 
   async function handleCreateSearch(name: string) {
+    if (creatingSearchName) return false;
+    setCreatingSearchName(name);
     try {
       const search = await createJobSearch(name);
       setSearches((prev) => [...prev, search]);
@@ -199,8 +204,12 @@ export function Dashboard({
       setApplications([]);
       setTotal(0);
       setCounts(EMPTY_COUNTS);
+      return true;
     } catch (e) {
       toast.error(errorMessage(e, "Couldn't create job search"));
+      return false;
+    } finally {
+      setCreatingSearchName(null);
     }
   }
 
@@ -500,6 +509,7 @@ export function Dashboard({
       <Sidebar
         user={user}
         selectedJobSearch={selectedSearch}
+        creatingSearchName={creatingSearchName}
         onSelectSearch={handleSelectSearch}
         onCreateSearch={handleCreateSearch}
         onDeleteSearch={handleDeleteSearch}

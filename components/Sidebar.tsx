@@ -7,8 +7,9 @@ import Link from "next/link";
 interface SidebarProps {
   user: User | null;
   selectedJobSearch: JobSearch | null;
+  creatingSearchName: string | null;
   onSelectSearch: (search: JobSearch) => void;
-  onCreateSearch: (name: string) => void | Promise<void>;
+  onCreateSearch: (name: string) => Promise<boolean>;
   onDeleteSearch: (id: number) => void | Promise<void>;
   onLogout: () => void | Promise<void>;
 }
@@ -16,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({
   user,
   selectedJobSearch,
+  creatingSearchName,
   onSelectSearch,
   onCreateSearch,
   onDeleteSearch,
@@ -53,11 +55,11 @@ export function Sidebar({
     return null;
   }
 
-  function handleNewSearch() {
+  async function handleNewSearch() {
     const name = newSearchName.trim();
-    if (!name) return;
-    onCreateSearch(name);
-    setNewSearchName("");
+    if (!name || creatingSearchName) return;
+    const created = await onCreateSearch(name);
+    if (created) setNewSearchName("");
   }
 
   function handleLogout() {
@@ -130,19 +132,28 @@ export function Sidebar({
           })}
 
           <div className="flex w-44 shrink-0 items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted transition-colors focus-within:border-muted hover:border-muted hover:text-muted-strong md:mt-1 md:w-auto">
-            <PlusIcon className="h-3.5 w-3.5" />
+            {creatingSearchName ? (
+              <span
+                role="status"
+                aria-label={`Creating ${creatingSearchName}`}
+                className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-muted border-t-accent"
+              />
+            ) : (
+              <PlusIcon className="h-3.5 w-3.5" />
+            )}
             <input
               type="text"
               placeholder="New job search"
               value={newSearchName}
+              disabled={creatingSearchName !== null}
               maxLength={LIMITS.jobSearchName}
               onChange={(e) => setNewSearchName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  handleNewSearch();
+                  void handleNewSearch();
                 }
               }}
-              className="w-full bg-transparent text-sm text-muted-strong placeholder:text-muted focus:outline-none"
+              className="w-full bg-transparent text-sm text-muted-strong placeholder:text-muted focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
         </nav>

@@ -53,6 +53,16 @@ export function Sidebar({
     onLogout();
   }
 
+  function handleDeleteSearch(search: JobSearch) {
+    const confirmed = window.confirm(
+      `Delete "${search.name}" and all of its applications? This cannot be undone.`,
+    );
+
+    if (confirmed) {
+      void onDeleteSearch(search.id);
+    }
+  }
+
   const initials = user.name
     .split(" ")
     .map((n) => n[0])
@@ -101,7 +111,7 @@ export function Sidebar({
                   {js.applicationCount}
                 </span>
                 <button
-                  onClick={() => onDeleteSearch(js.id)}
+                  onClick={() => handleDeleteSearch(js)}
                   aria-label={`Delete ${js.name}`}
                   className="block shrink-0 px-2 py-2 text-muted transition-colors hover:text-red-400 md:hidden md:group-hover:block"
                 >

@@ -5,6 +5,25 @@ test("manages a job search, application, and timeline event", async ({
 }) => {
   await page.goto("/app");
 
+  // Retries reuse the authenticated user and database. Remove any search left
+  // behind by an interrupted attempt so locators and the final empty state stay
+  // deterministic.
+  const staleSearches = page.getByRole("button", {
+    name: "E2E Search",
+    exact: true,
+  });
+  while ((await staleSearches.count()) > 0) {
+    const searchRow = staleSearches.first().locator("..");
+    await searchRow.hover();
+    await searchRow
+      .getByRole("button", { name: "Delete E2E Search" })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Delete job search?" })
+      .getByRole("button", { name: "Delete job search" })
+      .click();
+  }
+
   await page.getByPlaceholder("New job search").fill("E2E Search");
   await page.getByPlaceholder("New job search").press("Enter");
   await expect(page.getByRole("heading", { name: "E2E Search" })).toBeVisible();
@@ -113,6 +132,10 @@ test("manages a job search, application, and timeline event", async ({
 
   await page.getByRole("button", { name: "E2E Search", exact: true }).hover();
   await page.getByRole("button", { name: "Delete E2E Search" }).click();
+  await page
+    .getByRole("dialog", { name: "Delete job search?" })
+    .getByRole("button", { name: "Delete job search" })
+    .click();
   await expect(page.getByText("No job search selected")).toBeVisible();
 });
 

@@ -145,6 +145,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_application_with_initial_event: {
+        Args: {
+          p_company: string
+          p_date?: string
+          p_job_search_id: number
+          p_location?: string | null
+          p_role: string
+        }
+        Returns: {
+          application_created_at: string
+          application_id: number
+          company: string
+          event: string
+          event_date: string
+          event_id: number
+          event_note: string | null
+          follow_up: boolean
+          location: string | null
+          role: string
+          status: string
+        }[]
+      }
       get_application_status_counts: {
         Args: { p_job_search_id: number }
         Returns: {
@@ -293,4 +315,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

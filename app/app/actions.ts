@@ -111,49 +111,37 @@ export async function createApplication(
     },
     async () => {
       const parsed = applicationFieldsSchema.parse(fields);
-      const { supabase, user } = await requireUser();
-      await requireJobSearchOwner(supabase, user.id, jobSearchId);
-
-      const { data: app, error } = await supabase
-        .from("applications")
-        .insert({
-          job_search_id: jobSearchId,
-          user_id: user.id,
-          role: parsed.role,
-          company: parsed.company,
-          location: parsed.location ?? null,
-          status: ApplicationStatus.Applied,
-          follow_up: false,
+      const { supabase } = await requireUser();
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .rpc("create_application_with_initial_event", {
+          p_job_search_id: jobSearchId,
+          p_role: parsed.role,
+          p_company: parsed.company,
+          p_location: parsed.location ?? null,
+          p_date: today,
         })
-        .select("id, role, company, location, status, follow_up, created_at")
         .single();
 
       if (error) throw databaseError(error);
-      setLogResource("application", app.id);
-
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: event, error: eventError } = await supabase
-        .from("timeline_events")
-        .insert({
-          application_id: app.id,
-          user_id: user.id,
-          event: ApplicationStatus.Applied,
-          date: today,
-        })
-        .select("id, event, date, note")
-        .single();
-
-      if (eventError) throw databaseError(eventError);
+      setLogResource("application", data.application_id);
 
       return {
-        id: app.id,
-        role: app.role,
-        company: app.company,
-        location: app.location ?? undefined,
-        status: app.status as ApplicationStatus,
-        followUp: app.follow_up,
-        createdAt: app.created_at,
-        timeline: [mapTimelineEvent(event)],
+        id: data.application_id,
+        role: data.role,
+        company: data.company,
+        location: data.location ?? undefined,
+        status: data.status as ApplicationStatus,
+        followUp: data.follow_up,
+        createdAt: data.application_created_at,
+        timeline: [
+          mapTimelineEvent({
+            id: data.event_id,
+            event: data.event,
+            date: data.event_date,
+            note: data.event_note,
+          }),
+        ],
       };
     },
   );

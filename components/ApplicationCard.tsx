@@ -8,6 +8,7 @@ import { BriefcaseIcon, MapPinIcon, PlusIcon, StarIcon } from "./icons";
 import AddTimelineEventModal from "./AddTimelineEventModal";
 import EditApplicationModal from "./EditApplicationModal";
 import { useRef, useState } from "react";
+import { formatDateOnly } from "@/lib/date";
 
 type ApplicationProps = {
   application: Application;
@@ -174,7 +175,7 @@ export default function ApplicationCard({
                 <p className="mt-1 text-[10px] text-muted">
                   {loadingEventId === e.id
                     ? "Loading..."
-                    : new Date(e.date).toLocaleDateString()}
+                    : formatDateOnly(e.date)}
                 </p>
               </button>
               {index < application.timeline.length - 1 && (

@@ -23,6 +23,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [newSearchName, setNewSearchName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchToDelete, setSearchToDelete] = useState<JobSearch | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close the profile menu when clicking outside of it.
@@ -36,6 +37,17 @@ export function Sidebar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!searchToDelete) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSearchToDelete(null);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchToDelete]);
 
   if (user == null) {
     return null;
@@ -53,14 +65,10 @@ export function Sidebar({
     onLogout();
   }
 
-  function handleDeleteSearch(search: JobSearch) {
-    const confirmed = window.confirm(
-      `Delete "${search.name}" and all of its applications? This cannot be undone.`,
-    );
-
-    if (confirmed) {
-      void onDeleteSearch(search.id);
-    }
+  function confirmDeleteSearch() {
+    if (!searchToDelete) return;
+    void onDeleteSearch(searchToDelete.id);
+    setSearchToDelete(null);
   }
 
   const initials = user.name
@@ -111,7 +119,7 @@ export function Sidebar({
                   {js.applicationCount}
                 </span>
                 <button
-                  onClick={() => handleDeleteSearch(js)}
+                  onClick={() => setSearchToDelete(js)}
                   aria-label={`Delete ${js.name}`}
                   className="block shrink-0 px-2 py-2 text-muted transition-colors hover:text-red-400 md:hidden md:group-hover:block"
                 >
@@ -171,6 +179,49 @@ export function Sidebar({
           </div>
         </button>
       </div>
+
+      {searchToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          onClick={() => setSearchToDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-search-title"
+            aria-describedby="delete-search-description"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-lg border border-border bg-panel-raised p-4 shadow-xl sm:p-6"
+          >
+            <h2
+              id="delete-search-title"
+              className="text-base font-semibold tracking-tight"
+            >
+              Delete job search?
+            </h2>
+            <p id="delete-search-description" className="mt-2 text-sm text-muted">
+              Delete &ldquo;{searchToDelete.name}&rdquo; and all of its
+              applications? This cannot be undone.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-2 border-t border-border-soft pt-4">
+              <button
+                autoFocus
+                onClick={() => setSearchToDelete(null)}
+                className="cursor-pointer rounded-md border border-border px-4 py-1.5 text-sm text-muted transition-colors hover:text-foreground focus:outline-none focus-visible:border-muted"
+              >
+                Keep it
+              </button>
+              <button
+                onClick={confirmDeleteSearch}
+                className="cursor-pointer rounded-md border border-red-400/30 bg-red-400/15 px-4 py-1.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-400/25 focus:outline-none focus-visible:border-red-400"
+              >
+                Delete job search
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

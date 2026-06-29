@@ -122,6 +122,9 @@ export function FeatureGallery() {
                   muted
                   playsInline
                   preload="metadata"
+                  onLoadedMetadata={(event) => {
+                    event.currentTarget.playbackRate = 2;
+                  }}
                   onEnded={() => {
                     if (index === activeIndex) handleVideoEnded();
                   }}

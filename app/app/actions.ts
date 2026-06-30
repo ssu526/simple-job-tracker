@@ -7,10 +7,8 @@ import {
   ApplicationStatus,
   ApplicationsPage,
   JobSearch,
-  PAGE_SIZE,
   StatusCounts,
   TimelineEvent,
-  FOLLOW_UP_FILTER,
 } from "@/types";
 import {
   applicationFieldsSchema,
@@ -19,11 +17,11 @@ import {
   jobSearchNameSchema,
   timelineEventSchema,
 } from "@/lib/validation";
+import { mapTimelineEvent } from "@/lib/mappers";
 import {
-  mapApplication,
-  mapTimelineEvent,
-  type ApplicationRow,
-} from "@/lib/mappers";
+  queryApplicationsPage,
+  queryStatusCounts,
+} from "@/lib/dashboard-queries";
 import { redirect } from "next/navigation";
 import {
   databaseError,
@@ -261,42 +259,12 @@ export async function getApplicationsPage(
     async () => {
       const { supabase, user } = await requireUser();
       await requireJobSearchOwner(supabase, user.id, jobSearchId);
-
-      const page = Math.max(0, options.page ?? 0);
-      const status = options.status ?? "All";
-      const search = sanitizeSearch(options.query ?? "");
-
-      let q = supabase
-        .from("applications")
-        .select(APPLICATION_COLUMNS, { count: "exact" })
-        .eq("job_search_id", jobSearchId)
-        .eq("user_id", user.id);
-
-      if (status === FOLLOW_UP_FILTER) {
-        q = q.eq("follow_up", true);
-      } else if (status !== "All") {
-        q = q.eq("status", status);
-      }
-      if (search) {
-        q = q.or(
-          `role.ilike.%${search}%,company.ilike.%${search}%,location.ilike.%${search}%`,
-        );
-      }
-
-      const from = page * PAGE_SIZE;
-      const { data, count, error } = await q
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-
-      if (error) throw databaseError(error);
-
-      return {
-        applications: (data ?? []).map((row) =>
-          mapApplication(row as ApplicationRow),
-        ),
-        total: count ?? 0,
-      };
+      return queryApplicationsPage(
+        supabase,
+        user.id,
+        jobSearchId,
+        options,
+      );
     },
   );
 }
@@ -313,24 +281,7 @@ export async function getStatusCounts(
     },
     async () => {
       const { supabase } = await requireUser();
-      const { data, error } = await supabase
-        .rpc("get_application_status_counts", {
-          p_job_search_id: jobSearchId,
-        })
-        .single();
-
-      if (error) throw databaseError(error);
-
-      return {
-        All: data.all_count,
-        [ApplicationStatus.Applied]: data.applied_count,
-        [ApplicationStatus.InProgress]: data.in_progress_count,
-        [ApplicationStatus.Accepted]: data.accepted_count,
-        [ApplicationStatus.Rejected]: data.rejected_count,
-        [ApplicationStatus.Ghosted]: data.ghosted_count,
-        [ApplicationStatus.Withdrawn]: data.withdrawn_count,
-        [FOLLOW_UP_FILTER]: data.follow_up_count,
-      };
+      return queryStatusCounts(supabase, jobSearchId);
     },
   );
 }
@@ -445,13 +396,6 @@ export async function deleteTimelineEvent(id: number): Promise<void> {
 }
 
 // --- Helpers -------------------------------------------------------------
-const APPLICATION_COLUMNS =
-  "id, role, company, location, status, follow_up, created_at, timeline_events ( id, event, date )";
-
-function sanitizeSearch(query: string): string {
-  return query.replace(/[,()\\*%_]/g, " ").trim();
-}
-
 function unauthorized(): Error {
   return new Error("Unauthorized");
 }

@@ -1,8 +1,15 @@
 import { Dashboard } from "@/components/Dashboard";
+import { DashboardLoading } from "@/components/DashboardLoading";
 import { createClient } from "@/lib/supabase/server";
 import { EMPTY_COUNTS, EMPTY_PAGE, JobSearch, User } from "@/types";
-import { getApplicationsPage, getStatusCounts } from "./actions";
 import { AuthPage } from "@/components/AuthPage";
+import {
+  queryApplicationsPage,
+  queryStatusCounts,
+} from "@/lib/dashboard-queries";
+import type { SupabaseClient, User as SupabaseUser } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+import { Suspense } from "react";
 
 type JobSearchRow = {
   id: number;
@@ -27,6 +34,20 @@ export default async function AppPage({
     return <AuthPage authError={Boolean(auth_error)} />;
   }
 
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardData supabase={supabase} user={user} />
+    </Suspense>
+  );
+}
+
+async function DashboardData({
+  supabase,
+  user,
+}: {
+  supabase: SupabaseClient<Database>;
+  user: SupabaseUser;
+}) {
   const { data: searches } = await supabase
     .from("job_searches")
     .select("id, name, date_created, applications ( count )")
@@ -58,8 +79,8 @@ export default async function AppPage({
   const firstSearch = jobSearches[0] ?? null;
   const [initialPage, initialCounts] = firstSearch
     ? await Promise.all([
-        getApplicationsPage(firstSearch.id, { page: 0 }),
-        getStatusCounts(firstSearch.id),
+        queryApplicationsPage(supabase, user.id, firstSearch.id, { page: 0 }),
+        queryStatusCounts(supabase, firstSearch.id),
       ])
     : [EMPTY_PAGE, EMPTY_COUNTS];
 

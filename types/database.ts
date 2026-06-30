@@ -150,7 +150,7 @@ export type Database = {
           p_company: string
           p_date?: string
           p_job_search_id: number
-          p_location?: string | null
+          p_location?: string
           p_role: string
         }
         Returns: {
@@ -160,9 +160,9 @@ export type Database = {
           event: string
           event_date: string
           event_id: number
-          event_note: string | null
+          event_note: string
           follow_up: boolean
-          location: string | null
+          location: string
           role: string
           status: string
         }[]
@@ -315,3 +315,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

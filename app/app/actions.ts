@@ -118,7 +118,7 @@ export async function createApplication(
           p_job_search_id: jobSearchId,
           p_role: parsed.role,
           p_company: parsed.company,
-          p_location: parsed.location ?? null,
+          ...(parsed.location ? { p_location: parsed.location } : {}),
           p_date: today,
         })
         .single();

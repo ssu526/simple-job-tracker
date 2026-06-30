@@ -173,9 +173,7 @@ export default function ApplicationCard({
                 <p className="truncate text-xs font-medium">{e.event}</p>
 
                 <p className="mt-1 text-[10px] text-muted">
-                  {loadingEventId === e.id
-                    ? "Loading..."
-                    : formatDateOnly(e.date)}
+                  {formatDateOnly(e.date)}
                 </p>
               </button>
               {index < application.timeline.length - 1 && (
@@ -204,10 +202,10 @@ export default function ApplicationCard({
 
       {editingEvent && (
         <AddTimelineEventModal
-          key={`${editingEvent.id}-${editingEvent.noteLoaded ? "loaded" : "loading"}`}
+          key={editingEvent.id}
           title={`${application.role} · ${application.company}`}
           initialEvent={editingEvent}
-          loadingDetails={
+          loadingNote={
             loadingEventId === editingEvent.id && !editingEvent.noteLoaded
           }
           onCancel={() => {

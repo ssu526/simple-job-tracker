@@ -20,7 +20,7 @@ function toInputDate(value: string): string {
 type AddTimelineEventModalProps = {
   title: string;
   initialEvent?: TimelineEvent;
-  loadingDetails?: boolean;
+  loadingNote?: boolean;
   onCancel: () => void;
   onSave: (event: Omit<TimelineEvent, "id">) => void | Promise<void>;
   onDelete?: () => void;
@@ -29,7 +29,7 @@ type AddTimelineEventModalProps = {
 export default function AddTimelineEventModal({
   title,
   initialEvent,
-  loadingDetails = false,
+  loadingNote = false,
   onCancel,
   onSave,
   onDelete,
@@ -40,9 +40,10 @@ export default function AddTimelineEventModal({
   const [date, setDate] = useState(
     initialEvent ? toInputDate(initialEvent.date) : today,
   );
-  const [note, setNote] = useState(initialEvent?.note ?? "");
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const note = noteDraft ?? initialEvent?.note ?? "";
 
   // Close on 'Esc'
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function AddTimelineEventModal({
 
   async function handleSave() {
     const trimmedEvent = event.trim();
-    if (!trimmedEvent || !date || saving || loadingDetails) return;
+    if (!trimmedEvent || !date || saving || loadingNote) return;
     setSaving(true);
     try {
       await onSave({
@@ -88,23 +89,13 @@ export default function AddTimelineEventModal({
           {isEditing ? "Edit timeline event" : "Add timeline event"}
         </h2>
         <p className="mt-1 truncate text-sm text-muted">{title}</p>
-        {isEditing && (
-          <p
-            className={`mt-2 h-4 text-xs text-muted ${loadingDetails ? "visible" : "invisible"}`}
-            aria-live="polite"
-          >
-            Loading event details...
-          </p>
-        )}
-
         <div className="mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-strong">
               Event <span className="text-red-400">*</span>
             </label>
             <input
-              autoFocus={!loadingDetails}
-              disabled={loadingDetails}
+              autoFocus
               value={event}
               maxLength={LIMITS.event}
               onChange={(e) =>
@@ -123,7 +114,6 @@ export default function AddTimelineEventModal({
             <div className="relative">
               <input
                 type="date"
-                disabled={loadingDetails}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className={`${fieldClass} cursor-pointer pr-11`}
@@ -139,15 +129,29 @@ export default function AddTimelineEventModal({
                 &nbsp; (optional, max {LIMITS.note} characters)
               </span>
             </label>
-            <textarea
-              value={note}
-              disabled={loadingDetails}
-              maxLength={LIMITS.note}
-              onChange={(e) => setNote(limitText(e.target.value, LIMITS.note))}
-              rows={10}
-              placeholder={loadingDetails ? "Loading note..." : undefined}
-              className={`${fieldClass} min-h-40 resize-y disabled:cursor-wait disabled:opacity-60 sm:min-h-64`}
-            />
+            {loadingNote ? (
+              <div
+                role="status"
+                aria-label="Loading note"
+                className={`${fieldClass} flex min-h-40 items-center justify-center sm:min-h-64`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-accent"
+                />
+                <span className="sr-only">Loading note…</span>
+              </div>
+            ) : (
+              <textarea
+                value={note}
+                maxLength={LIMITS.note}
+                onChange={(e) =>
+                  setNoteDraft(limitText(e.target.value, LIMITS.note))
+                }
+                rows={10}
+                className={`${fieldClass} min-h-40 resize-y sm:min-h-64`}
+              />
+            )}
           </div>
         </div>
 
@@ -174,7 +178,7 @@ export default function AddTimelineEventModal({
             {isEditing && onDelete && (
               <button
                 onClick={() => setConfirmingDelete(true)}
-                disabled={loadingDetails}
+                disabled={loadingNote}
                 className="mr-auto cursor-pointer rounded-md border border-red-400/20 bg-red-400/10 px-4 py-1.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-400/20 focus:outline-none focus-visible:border-red-400"
               >
                 Delete event
@@ -188,7 +192,7 @@ export default function AddTimelineEventModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || loadingDetails || !event.trim() || !date}
+              disabled={saving || loadingNote || !event.trim() || !date}
               className="cursor-pointer rounded-md border border-accent/20 bg-accent/10 px-4 py-1.5 text-sm font-semibold text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:border-muted"
             >
               {saving ? "Saving…" : "Save"}
